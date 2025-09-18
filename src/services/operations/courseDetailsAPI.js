@@ -1,4 +1,5 @@
 import { toast } from "react-hot-toast"
+import axios from "axios"
 
 import { updateCompletedLectures } from "../../slices/viewCourseSlice"
 // import { setLoading } from "../../slices/profileSlice";
@@ -155,20 +156,34 @@ export const createSection = async (data, token) => {
 // create a subsection
 export const createSubSection = async (data, token) => {
   let result = null
-  const toastId = toast.loading("Loading...")
+  const toastId = toast.loading("🎥 Uploading video... This may take a few minutes for large files. Please don't close this tab.")
   try {
-    const response = await apiConnector("POST", CREATE_SUBSECTION_API, data, {
-      Authorization: `Bearer ${token}`,
-    })
+    // Create a custom axios instance with longer timeout for video uploads
+    const videoUploadInstance = axios.create({
+      baseURL: "http://localhost:4000",
+      timeout: 300000, // 5 minutes timeout for video uploads
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${token}`,
+      }
+    });
+
+    const response = await videoUploadInstance.post("/api/v1/course/addSubSection", data)
     console.log("CREATE SUB-SECTION API RESPONSE............", response)
     if (!response?.data?.success) {
       throw new Error("Could Not Add Lecture")
     }
-    toast.success("Lecture Added")
+    toast.success("✅ Lecture Added Successfully! Video uploaded and ready.")
     result = response?.data?.data
   } catch (error) {
     console.log("CREATE SUB-SECTION API ERROR............", error)
-    toast.error(error.message)
+    if (error.code === 'ECONNABORTED') {
+      toast.error("⏰ Video upload timed out. Please try with a smaller file or check your internet connection.")
+    } else if (error.response?.status === 413) {
+      toast.error("📁 Video file is too large. Please compress the video or use a smaller file (max 100MB).")
+    } else {
+      toast.error("❌ Failed to upload video. Please try again.")
+    }
   }
   toast.dismiss(toastId)
   return result
@@ -199,20 +214,45 @@ export const updateSection = async (data, token) => {
 // update a subsection
 export const updateSubSection = async (data, token) => {
   let result = null
-  const toastId = toast.loading("Loading...")
+  const toastId = toast.loading("Updating lecture...")
   try {
-    const response = await apiConnector("POST", UPDATE_SUBSECTION_API, data, {
-      Authorization: `Bearer ${token}`,
-    })
+    // Check if video is being updated (has video file)
+    const hasVideo = data instanceof FormData && data.has('video');
+    
+    let response;
+    if (hasVideo) {
+      // Use longer timeout for video uploads
+      const videoUploadInstance = axios.create({
+        baseURL: "http://localhost:4000",
+        timeout: 300000, // 5 minutes timeout for video uploads
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      response = await videoUploadInstance.post("/api/v1/course/updateSubSection", data)
+    } else {
+      // Use regular timeout for non-video updates
+      response = await apiConnector("POST", UPDATE_SUBSECTION_API, data, {
+        Authorization: `Bearer ${token}`,
+      })
+    }
+    
     console.log("UPDATE SUB-SECTION API RESPONSE............", response)
     if (!response?.data?.success) {
       throw new Error("Could Not Update Lecture")
     }
-    toast.success("Lecture Updated")
+    toast.success("Lecture Updated Successfully")
     result = response?.data?.data
   } catch (error) {
     console.log("UPDATE SUB-SECTION API ERROR............", error)
-    toast.error(error.message)
+    if (error.code === 'ECONNABORTED') {
+      toast.error("Video upload timed out. Please try with a smaller file or check your internet connection.")
+    } else if (error.response?.status === 413) {
+      toast.error("Video file is too large. Please compress the video or use a smaller file.")
+    } else {
+      toast.error(error.message || "Failed to update lecture. Please try again.")
+    }
   }
   toast.dismiss(toastId)
   return result

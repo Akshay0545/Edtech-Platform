@@ -1,4 +1,4 @@
-const {instance} = require("../config/razorpay");
+const {getRazorpayInstance} = require("../config/razorpay");
 const Course = require("../models/Course");
 const User = require("../models/User");
 const mailSender = require("../utils/mailSender");
@@ -46,8 +46,11 @@ exports.capturePayment = async(req, res) => {
     }
 
     try{
-       
-        const paymentResponse = await instance.orders.create(options);
+        console.log("Creating Razorpay order with options:", options);
+        console.log("Razorpay Key ID:", process.env.RAZORPAY_KEY_ID);
+        console.log("Razorpay Key Secret:", process.env.RAZORPAY_KEY_SECRET ? "Present" : "Missing");
+        
+        const paymentResponse = await getRazorpayInstance().orders.create(options);
         res.json({
             success:true,
             message:paymentResponse,
@@ -56,8 +59,12 @@ exports.capturePayment = async(req, res) => {
         console.log("ddddddddddddddddddddddddddd")
     }
     catch(error) {
-        console.log(error);
-        return res.status(500).json({success:false, mesage:"Could not Initiate Order"});
+        console.log("Payment creation error:", error);
+        return res.status(500).json({
+            success: false, 
+            message: "Could not Initiate Order",
+            error: error.message
+        });
     }
 
 }
@@ -81,7 +88,7 @@ exports.verifyPayment = async(req, res) => {
 
     let body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
-        .createHmac("sha256", process.env.RAZORPAY_SECRET)
+        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
         .update(body.toString())
         .digest("hex");
 
@@ -220,7 +227,7 @@ exports.sendPaymentSuccessEmail = async(req, res) => {
 
 //     try{
 //         //initiate the payment using razorpay
-//         const paymentResponse = await instance.orders.create(options);
+//         const paymentResponse = await getRazorpayInstance().orders.create(options);
 //         console.log(paymentResponse);
 //         //return response
 //         return res.status(200).json({

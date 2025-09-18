@@ -14,11 +14,11 @@ const { cloudinaryConnect } = require("./config/cloudinary");
 const fileUpload = require("express-fileupload");
 const dotenv = require("dotenv");
 
-// Setting up port number
-const PORT = process.env.PORT || 4000;
-
 // Loading environment variables from .env file
 dotenv.config();
+
+// Setting up port number
+const PORT = process.env.PORT || 4000;
 
 // Connecting to database
 database.connect();
@@ -36,6 +36,10 @@ app.use(
 	fileUpload({
 		useTempFiles: true,
 		tempFileDir: "/tmp/",
+		limits: {
+			fileSize: 100 * 1024 * 1024, // 100MB limit for video files
+		},
+		abortOnLimit: true,
 	})
 );
 

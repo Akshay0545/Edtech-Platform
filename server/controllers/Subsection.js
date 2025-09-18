@@ -13,17 +13,26 @@ exports.createSubSection = async (req, res) => {
     // Check if all necessary fields are provided
     if (!sectionId || !title || !description || !video) {
       return res
-        .status(404)
+        .status(400)
         .json({ success: false, message: "All Fields are Required" })
     }
-    console.log(video)
+
+    // Check file size (100MB limit)
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (video.size > maxSize) {
+      return res
+        .status(413)
+        .json({ success: false, message: "Video file is too large. Maximum size is 100MB." })
+    }
+
+    console.log("Uploading video:", video.name, "Size:", (video.size / 1024 / 1024).toFixed(2) + "MB")
 
     // Upload the video file to Cloudinary
     const uploadDetails = await uploadImageToCloudinary(
       video,
       process.env.FOLDER_NAME
     )
-    console.log(uploadDetails)
+    console.log("Upload completed:", uploadDetails.secure_url)
     // Create a new sub-section with the necessary information
     const SubSectionDetails = await SubSection.create({
       title: title,
@@ -73,6 +82,17 @@ exports.updateSubSection = async (req, res) => {
     }
     if (req.files && req.files.video !== undefined) {
       const video = req.files.video
+      
+      // Check file size (100MB limit)
+      const maxSize = 100 * 1024 * 1024; // 100MB
+      if (video.size > maxSize) {
+        return res
+          .status(413)
+          .json({ success: false, message: "Video file is too large. Maximum size is 100MB." })
+      }
+
+      console.log("Updating video:", video.name, "Size:", (video.size / 1024 / 1024).toFixed(2) + "MB")
+      
       const uploadDetails = await uploadImageToCloudinary(
         video,
         process.env.FOLDER_NAME

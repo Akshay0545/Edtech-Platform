@@ -66,18 +66,21 @@ exports.signup = async (req, res) => {
 
     // Find the most recent OTP for the email
     const response = await OTP.find({ email }).sort({ createdAt: -1 }).limit(1)
-    console.log(response)
+    console.log("OTP Response:", response)
+    console.log("Provided OTP:", otp)
+    console.log("Stored OTP:", response.length > 0 ? response[0].otp : "No OTP found")
+    
     if (response.length === 0) {
       // OTP not found for the email
       return res.status(400).json({
         success: false,
-        message: "The OTP is not valid",
+        message: "The OTP is not valid - No OTP found for this email",
       })
     } else if (otp !== response[0].otp) {
       // Invalid OTP
       return res.status(400).json({
         success: false,
-        message: "The OTP is not valid",
+        message: "The OTP is not valid - OTP mismatch",
       })
     }
 
@@ -86,7 +89,7 @@ exports.signup = async (req, res) => {
 
     // Create the user
     let approved = ""
-    approved === "Instructor" ? (approved = false) : (approved = true)
+    approved = accountType === "Instructor" ? false : true
 
     // Create the Additional Profile For User
     const profileDetails = await Profile.create({
@@ -218,7 +221,11 @@ exports.sendotp = async (req, res) => {
     while (result) {
       otp = otpGenerator.generate(6, {
         upperCaseAlphabets: false,
+        lowerCaseAlphabets: false,
+        specialChars: false,
       })
+      const newResult = await OTP.findOne({ otp: otp })
+      if (!newResult) break
     }
     const otpPayload = { email, otp }
     const otpBody = await OTP.create(otpPayload)

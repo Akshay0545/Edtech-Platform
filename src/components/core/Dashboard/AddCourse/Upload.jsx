@@ -21,6 +21,7 @@ export default function Upload({
   const [previewSource, setPreviewSource] = useState(
     viewData ? viewData : editData ? editData : ""
   )
+  const [uploadProgress, setUploadProgress] = useState(0)
   const inputRef = useRef(null)
 
   const onDrop = (acceptedFiles) => {
@@ -31,12 +32,18 @@ export default function Upload({
     }
   }
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     accept: !video
       ? { "image/*": [".jpeg", ".jpg", ".png"] }
       : { "video/*": [".mp4"] },
     onDrop,
+    noClick: true, // Disable default click behavior
+    noKeyboard: true, // Disable keyboard behavior
   })
+
+  const handleClick = () => {
+    open()
+  }
 
   const previewFile = (file) => {
     // console.log(file)
@@ -94,19 +101,31 @@ export default function Upload({
           </div>
         ) : (
           <div
-            className="flex w-full flex-col items-center p-6"
+            className="flex w-full flex-col items-center p-6 cursor-pointer"
             {...getRootProps()}
+            onClick={handleClick}
           >
             <input {...getInputProps()} ref={inputRef} />
             <div className="grid aspect-square w-14 place-items-center rounded-full bg-pure-greys-800">
               <FiUploadCloud className="text-2xl text-yellow-50" />
             </div>
             <p className="mt-2 max-w-[200px] text-center text-sm text-richblack-200">
-              Drag and drop an {!video ? "image" : "video"}, or click to{" "}
-              <span className="font-semibold text-yellow-50">Browse</span> a
-              file
+              Drag and drop an {!video ? "image" : "video"}, or{" "}
+              <span className="font-semibold text-yellow-50 underline cursor-pointer hover:text-yellow-100">click to browse</span>
             </p>
-            <ul className="mt-10 flex list-disc justify-between space-x-12 text-center  text-xs text-richblack-200">
+            {video && (
+              <div className="mt-4 w-full max-w-[300px]">
+                <div className="mb-2 text-xs text-richblack-300">
+                  📹 Video Upload Tips:
+                </div>
+                <ul className="text-xs text-richblack-300 space-y-1">
+                  <li>• Max file size: 100MB</li>
+                  <li>• Supported formats: MP4, MOV, AVI</li>
+                  <li>• Upload may take 2-5 minutes</li>
+                </ul>
+              </div>
+            )}
+            <ul className="mt-6 flex list-disc justify-between space-x-12 text-center text-xs text-richblack-200">
               <li>Aspect ratio 16:9</li>
               <li>Recommended size 1024x576</li>
             </ul>

@@ -45,6 +45,13 @@ function SignupForm() {
       toast.error("Passwords Do Not Match")
       return
     }
+
+    // Check password length before sending OTP
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters long")
+      return
+    }
+
     const signupData = {
       ...formData,
       accountType,
